@@ -23,17 +23,25 @@ const requestJson = async (url: string, init: RequestInit) => {
 };
 
 export async function signUp(payload: SignUpPayload) {
-  return requestJson(`${API_URL}/signup`, {
+  const data = await requestJson(`${API_URL}/signup`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(payload),
   });
+  if (data.token) {
+    localStorage.setItem("auth_token", data.token);
+  }
+  return data;
 }
 
 export async function signIn(payload: SignInPayload) {
-  return requestJson(`${API_URL}/signin`, {
+  const data = await requestJson(`${API_URL}/signin`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(payload),
   });
+  if (data.token) {
+    localStorage.setItem("auth_token", data.token);
+  }
+  return data;
 }
