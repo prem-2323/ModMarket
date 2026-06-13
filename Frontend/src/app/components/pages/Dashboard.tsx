@@ -1,6 +1,7 @@
 import { TrendingUp, Download, ShoppingBag, Star, Upload, BarChart2, Tag, AlertTriangle, Calendar } from "lucide-react";
 import { motion } from "motion/react";
 import { useEffect, useRef, useState } from "react";
+import { useAuth } from "../../contexts/AuthContext";
 
 // ── Custom SVG dual-line chart (avoids recharts duplicate-key bug) ──────────
 function DualLineChart({ data }: { data: { date: string; revenue: number; last: number }[] }) {
@@ -117,6 +118,9 @@ interface DashboardProps {
 }
 
 export function Dashboard({ onNavigate }: DashboardProps) {
+  const { profile } = useAuth();
+  const displayName = profile?.username || "DarkGaming";
+
   return (
     <div className="p-6 space-y-5 min-h-full bg-gray-50">
 
@@ -128,7 +132,7 @@ export function Dashboard({ onNavigate }: DashboardProps) {
         transition={{ duration: 0.4 }}
       >
         <div>
-          <h1 className="text-xl font-bold text-gray-900">Welcome back, DarkGaming! 👋</h1>
+          <h1 className="text-xl font-bold text-gray-900">Welcome back, @{displayName}! 👋</h1>
           <p className="text-sm text-gray-500 mt-0.5">Here's what's happening with your mods today.</p>
         </div>
         <button className="flex items-center gap-1.5 border border-gray-300 rounded-lg px-3 py-1.5 text-sm text-gray-700 hover:bg-white transition-colors shadow-sm">

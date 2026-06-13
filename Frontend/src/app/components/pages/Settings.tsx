@@ -5,6 +5,7 @@ import {
   ChevronRight, Check, Toggle, Eye, EyeOff, Camera, Moon, Sun,
   Smartphone, Mail, Lock, AlertTriangle
 } from "lucide-react";
+import { useAuth } from "../../contexts/AuthContext";
 
 /* ─── Sidebar tabs ─── */
 const tabs = [
@@ -62,27 +63,32 @@ function SettingRow({ label, desc, children }: { label: string; desc?: string; c
 /* ─── General Tab ─── */
 function GeneralTab() {
   const [showPass, setShowPass] = useState(false);
+  const { profile } = useAuth();
+  
+  const initials = profile?.fullName ? profile.fullName.substring(0,2).toUpperCase() : "DG";
+  const displayName = profile?.username || "Guest";
+
   return (
     <div className="space-y-4">
       <Section title="Profile Information" desc="Update your public creator profile details.">
         <div className="flex items-start gap-4 mb-4">
           <div className="relative group">
-            <div className="w-16 h-16 rounded-full bg-gray-900 flex items-center justify-center text-white font-bold">DG</div>
+            <div className="w-16 h-16 rounded-full bg-gray-900 flex items-center justify-center text-white font-bold">{initials}</div>
             <div className="absolute inset-0 rounded-full bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center cursor-pointer">
               <Camera size={14} className="text-white" />
             </div>
           </div>
           <div className="flex-1">
-            <div className="text-xs font-semibold text-gray-900">DarkGaming</div>
-            <div className="text-[11px] text-gray-400 mt-0.5">Creator account • Joined Jan 2024</div>
+            <div className="text-xs font-semibold text-gray-900">@{displayName}</div>
+            <div className="text-[11px] text-gray-400 mt-0.5">{profile?.accountType || "Creator account"} • Joined {profile?.createdAt ? new Date(profile.createdAt).toLocaleDateString() : "Jan 2024"}</div>
             <button className="mt-2 text-[11px] text-blue-600 hover:underline">Change avatar</button>
           </div>
         </div>
         <div className="grid grid-cols-2 gap-3">
           {[
-            { label: "Full Name", placeholder: "Dark Gaming", type: "text" },
-            { label: "Username", placeholder: "darkgaming", type: "text" },
-            { label: "Email Address", placeholder: "dark@gaming.com", type: "email" },
+            { label: "Full Name", placeholder: profile?.fullName || "Full Name", type: "text" },
+            { label: "Username", placeholder: profile?.username || "username", type: "text" },
+            { label: "Email Address", placeholder: profile?.email || "email@example.com", type: "email" },
             { label: "Phone Number", placeholder: "+91 98765 43210", type: "tel" },
           ].map(f => (
             <div key={f.label}>
@@ -98,7 +104,7 @@ function GeneralTab() {
         <div className="mt-3">
           <label className="block text-xs font-medium text-gray-700 mb-1">Bio</label>
           <textarea
-            defaultValue="Professional mod creator specializing in graphics, performance, and immersive game environments."
+            defaultValue={profile?.bio || "Professional mod creator specializing in graphics, performance, and immersive game environments."}
             rows={3}
             className="w-full px-3 py-2 border border-gray-300 rounded-lg text-xs text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none"
           />

@@ -16,6 +16,9 @@ import { Reviews } from "./components/pages/Reviews";
 import { Payouts } from "./components/pages/Payouts";
 import { Settings } from "./components/pages/Settings";
 
+import { AuthProvider, useAuth } from "./contexts/AuthContext";
+import { Loader2 } from "lucide-react";
+
 type Page =
   | "login"
   | "register"
@@ -32,39 +35,57 @@ type Page =
   | "subscription"
   | "settings";
 
-export default function App() {
+function AppContent() {
+  const { isAuthenticated, loading } = useAuth();
   const [page, setPage] = useState<Page>("login");
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <Loader2 className="animate-spin text-blue-600" size={32} />
+      </div>
+    );
+  }
 
   const navigate = (p: string) => setPage(p as Page);
 
-  if (page === "login") return <Login onNavigate={navigate} />;
-  if (page === "register")
-    return <Register onNavigate={navigate} />;
+  // Only show login/register when NOT loading and NOT authenticated
+  if (!isAuthenticated) {
+    if (page === "register") return <Register onNavigate={navigate} />;
+    return <Login onNavigate={navigate} />;
+  }
+
+  // Authenticated — but if they navigated to login or register, go to dashboard
+  const activePage = (page === "login" || page === "register") ? "dashboard" : page;
 
   return (
     <div className="flex h-screen bg-gray-50 overflow-hidden">
-      <Sidebar activePage={page} onNavigate={navigate} />
+      <Sidebar activePage={activePage} onNavigate={navigate} />
       <div className="flex-1 flex flex-col overflow-hidden">
         <TopBar />
         <main className="flex-1 overflow-y-auto">
-          {page === "dashboard" && (
-            <Dashboard onNavigate={navigate} />
-          )}
-          {page === "my-mods" && (
-            <MyMods onNavigate={navigate} />
-          )}
-          {page === "analytics" && <Analytics />}
-          {page === "upload-mod" && <UploadMod />}
-          {page === "my-library" && <MyLibrary />}
-          {page === "storage" && <Storage />}
-          {page === "subscription" && <Subscription />}
-          {page === "profile" && <Profile />}
-          {page === "sales" && <SalesEarnings />}
-          {page === "reviews" && <Reviews />}
-          {page === "payouts" && <Payouts />}
-          {page === "settings" && <Settings />}
+          {activePage === "dashboard" && <Dashboard onNavigate={navigate} />}
+          {activePage === "my-mods" && <MyMods onNavigate={navigate} />}
+          {activePage === "analytics" && <Analytics />}
+          {activePage === "upload-mod" && <UploadMod />}
+          {activePage === "my-library" && <MyLibrary />}
+          {activePage === "storage" && <Storage />}
+          {activePage === "subscription" && <Subscription />}
+          {activePage === "profile" && <Profile />}
+          {activePage === "sales" && <SalesEarnings />}
+          {activePage === "reviews" && <Reviews />}
+          {activePage === "payouts" && <Payouts />}
+          {activePage === "settings" && <Settings />}
         </main>
       </div>
     </div>
+  );
+}
+
+export default function App() {
+  return (
+    <AuthProvider>
+      <AppContent />
+    </AuthProvider>
   );
 }

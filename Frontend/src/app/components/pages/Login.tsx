@@ -2,6 +2,7 @@ import { useState, type FormEvent } from "react";
 import { motion } from "motion/react";
 import { Mail, Lock, Eye, EyeOff, Shield, Upload, BarChart2, Users } from "lucide-react";
 import { signIn } from "../../../services/authService";
+import { useAuth } from "../../contexts/AuthContext";
 
 interface LoginProps {
   onNavigate: (page: string) => void;
@@ -21,6 +22,7 @@ const providers = [
 ];
 
 export function Login({ onNavigate }: LoginProps) {
+  const { refreshProfile } = useAuth();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [showPass, setShowPass] = useState(false);
@@ -34,6 +36,7 @@ export function Login({ onNavigate }: LoginProps) {
 
     try {
       await signIn({ email, password });
+      await refreshProfile();
       onNavigate("dashboard");
     } catch (err) {
       setError(err instanceof Error ? err.message : "Unable to sign in.");

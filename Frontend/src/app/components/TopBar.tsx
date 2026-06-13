@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { motion, AnimatePresence } from "motion/react";
 import { Menu, Bell, ChevronDown, Settings, LogOut, User } from "lucide-react";
+import { useAuth } from "../contexts/AuthContext";
 
 interface TopBarProps {
   onMenuClick?: () => void;
@@ -19,6 +20,10 @@ const menuItems = [
 export function TopBar({ onMenuClick }: TopBarProps) {
   const [showDropdown, setShowDropdown] = useState(false);
   const [showNotifications, setShowNotifications] = useState(false);
+  const { profile, logout } = useAuth();
+
+  const displayName = profile?.username || "Guest";
+  const initials = profile?.fullName ? profile.fullName.substring(0, 2).toUpperCase() : "DG";
 
   const closeAll = () => { setShowDropdown(false); setShowNotifications(false); };
 
@@ -98,9 +103,9 @@ export function TopBar({ onMenuClick }: TopBarProps) {
             className="flex items-center gap-2 cursor-pointer hover:bg-gray-50 rounded-md px-2 py-1 transition-colors"
             onClick={() => { setShowDropdown(!showDropdown); setShowNotifications(false); }}
           >
-            <div className="w-7 h-7 rounded-full bg-gray-900 flex items-center justify-center text-white text-xs font-bold">DG</div>
+            <div className="w-7 h-7 rounded-full bg-gray-900 flex items-center justify-center text-white text-xs font-bold">{initials}</div>
             <div>
-              <div className="text-xs font-semibold text-gray-900 leading-none">DarkGaming</div>
+              <div className="text-xs font-semibold text-gray-900 leading-none">{displayName}</div>
               <div className="text-[10px] text-gray-500">Creator</div>
             </div>
             <motion.div animate={{ rotate: showDropdown ? 180 : 0 }} transition={{ duration: 0.2 }}>
@@ -139,7 +144,7 @@ export function TopBar({ onMenuClick }: TopBarProps) {
                     initial={{ opacity: 0 }}
                     animate={{ opacity: 1 }}
                     transition={{ delay: 0.15 }}
-                    onClick={closeAll}
+                    onClick={() => { closeAll(); logout(); }}
                   >
                     <LogOut size={12} />
                     Logout
