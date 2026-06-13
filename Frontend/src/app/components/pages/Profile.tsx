@@ -9,7 +9,7 @@ export function Profile() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [deleting, setDeleting] = useState(false);
-  
+
   const [profile, setProfile] = useState<Partial<UserProfile>>({});
 
   useEffect(() => {
@@ -97,7 +97,7 @@ export function Profile() {
                     whileHover={{ scale: 1.05 }}
                     transition={{ type: "spring", stiffness: 300 }}
                   >
-                    <span className="text-white text-2xl font-bold">{profile.fullName ? profile.fullName.substring(0,2).toUpperCase() : "DG"}</span>
+                    <span className="text-white text-2xl font-bold">{profile.fullName ? profile.fullName.substring(0, 2).toUpperCase() : "DG"}</span>
                     <motion.div
                       className="absolute inset-0 bg-black/40 rounded-full flex items-center justify-center opacity-0"
                       whileHover={{ opacity: 1 }}
@@ -114,60 +114,60 @@ export function Profile() {
                 <div className="flex-1 space-y-4">
                   <div>
                     <label className="block text-xs font-medium text-gray-700 mb-1.5">Display Name <span className="text-red-500">*</span></label>
-                    <input 
-                      value={profile.fullName || ""} 
+                    <input
+                      value={profile.fullName || ""}
                       onChange={(e) => handleChange("fullName", e.target.value)}
-                      className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent" 
+                      className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                     />
                     <div className="text-[10px] text-gray-400 mt-1">This is how your name will appear on the platform.</div>
                   </div>
                   <div className="grid grid-cols-2 gap-4">
                     <div>
                       <label className="block text-xs font-medium text-gray-700 mb-1.5">Email Address <span className="text-red-500">*</span></label>
-                      <input 
-                        value={profile.email || ""} 
+                      <input
+                        value={profile.email || ""}
                         onChange={(e) => handleChange("email", e.target.value)}
-                        className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent" 
+                        className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                       />
                     </div>
                     <div>
                       <label className="block text-xs font-medium text-gray-700 mb-1.5">Username <span className="text-red-500">*</span></label>
-                      <input 
-                        value={profile.username || ""} 
+                      <input
+                        value={profile.username || ""}
                         onChange={(e) => handleChange("username", e.target.value)}
-                        className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent" 
+                        className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                       />
                       <div className="text-[10px] text-gray-400 mt-1">This is your unique username.</div>
                     </div>
                   </div>
                   <div>
                     <label className="block text-xs font-medium text-gray-700 mb-1.5">Bio</label>
-                    <textarea 
-                      value={profile.bio || ""} 
+                    <textarea
+                      value={profile.bio || ""}
                       onChange={(e) => handleChange("bio", e.target.value)}
-                      className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none" 
-                      rows={3} 
-                      placeholder="Tell us about yourself..." 
+                      className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none"
+                      rows={3}
+                      placeholder="Tell us about yourself..."
                     />
                   </div>
                   <div className="grid grid-cols-2 gap-4">
                     <div>
                       <label className="block text-xs font-medium text-gray-700 mb-1.5">Country</label>
-                      <input 
+                      <input
                         type="text"
-                        value={profile.country || ""} 
+                        value={profile.country || ""}
                         onChange={(e) => handleChange("country", e.target.value)}
-                        className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent" 
+                        className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                         placeholder="e.g. United States"
                       />
                     </div>
                     <div>
                       <label className="block text-xs font-medium text-gray-700 mb-1.5">Language</label>
-                      <input 
+                      <input
                         type="text"
-                        value={profile.language || ""} 
+                        value={profile.language || ""}
                         onChange={(e) => handleChange("language", e.target.value)}
-                        className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent" 
+                        className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                         placeholder="e.g. English"
                       />
                     </div>
@@ -204,7 +204,7 @@ export function Profile() {
                   </div>
                   <span className="text-xs font-semibold text-gray-900">{profile.createdAt ? new Date(profile.createdAt).toLocaleDateString() : "Loading..."}</span>
                 </div>
-                
+
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-2">
                     <span className="text-sm">👤</span>
@@ -218,12 +218,12 @@ export function Profile() {
                     <span className="text-sm">📦</span>
                     <span className="text-xs text-gray-600">Total Mods</span>
                   </div>
-                  <input 
-                    type="text" 
-                    value={profile.totalMods || ""} 
+                  <input
+                    type="text"
+                    value={profile.totalMods || ""}
                     onChange={(e) => handleChange("totalMods", e.target.value)}
                     placeholder="e.g. 24"
-                    className="w-24 text-right border border-gray-300 rounded px-2 py-1 text-xs text-gray-900 focus:outline-none focus:ring-1 focus:ring-blue-500" 
+                    className="w-24 text-right border border-gray-300 rounded px-2 py-1 text-xs text-gray-900 focus:outline-none focus:ring-1 focus:ring-blue-500"
                   />
                 </div>
 
@@ -232,12 +232,12 @@ export function Profile() {
                     <span className="text-sm">💰</span>
                     <span className="text-xs text-gray-600">Total Revenue</span>
                   </div>
-                  <input 
-                    type="text" 
-                    value={profile.totalRevenue || ""} 
+                  <input
+                    type="text"
+                    value={profile.totalRevenue || ""}
                     onChange={(e) => handleChange("totalRevenue", e.target.value)}
                     placeholder="e.g. ₹12,84,580.00"
-                    className="w-32 text-right border border-gray-300 rounded px-2 py-1 text-xs text-gray-900 focus:outline-none focus:ring-1 focus:ring-blue-500" 
+                    className="w-32 text-right border border-gray-300 rounded px-2 py-1 text-xs text-gray-900 focus:outline-none focus:ring-1 focus:ring-blue-500"
                   />
                 </div>
 
@@ -246,12 +246,12 @@ export function Profile() {
                     <span className="text-sm">⬇️</span>
                     <span className="text-xs text-gray-600">Total Downloads</span>
                   </div>
-                  <input 
-                    type="text" 
-                    value={profile.totalDownloads || ""} 
+                  <input
+                    type="text"
+                    value={profile.totalDownloads || ""}
                     onChange={(e) => handleChange("totalDownloads", e.target.value)}
                     placeholder="e.g. 45,201"
-                    className="w-28 text-right border border-gray-300 rounded px-2 py-1 text-xs text-gray-900 focus:outline-none focus:ring-1 focus:ring-blue-500" 
+                    className="w-28 text-right border border-gray-300 rounded px-2 py-1 text-xs text-gray-900 focus:outline-none focus:ring-1 focus:ring-blue-500"
                   />
                 </div>
               </div>

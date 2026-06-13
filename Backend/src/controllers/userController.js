@@ -13,7 +13,7 @@ exports.getProfile = async (req, res) => {
     const data = doc.data();
     // Return the profile without password hash
     delete data.passwordHash;
-    
+
     return res.json({ profile: data });
   } catch (error) {
     console.error('Error fetching profile:', error);
@@ -27,7 +27,7 @@ exports.updateProfile = async (req, res) => {
     const { fullName, email, username, bio, country, language, totalMods, totalRevenue, totalDownloads } = req.body;
 
     const usersRef = db.collection('users');
-    
+
     // Create an object with only the fields that were provided
     const updates = {};
     if (fullName !== undefined) updates.fullName = fullName;
@@ -39,7 +39,7 @@ exports.updateProfile = async (req, res) => {
     if (totalMods !== undefined) updates.totalMods = totalMods;
     if (totalRevenue !== undefined) updates.totalRevenue = totalRevenue;
     if (totalDownloads !== undefined) updates.totalDownloads = totalDownloads;
-    
+
     updates.updatedAt = new Date().toISOString();
 
     await usersRef.doc(uid).update(updates);
