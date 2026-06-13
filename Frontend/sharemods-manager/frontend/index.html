@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>ShareMods Dashboard</title>
+</head>
+<body>
+
+<h1>ShareMods Dashboard</h1>
+
+<button onclick="getAccountInfo()">
+    Account Info
+</button>
+
+<button onclick="getFiles()">
+    My Files
+</button>
+
+<hr>
+
+<h3>Create Folder</h3>
+
+<input id="folderName" placeholder="Folder Name">
+
+<button onclick="createFolder()">
+    Create Folder
+</button>
+
+<hr>
+
+<h3>Remote URL Upload</h3>
+
+<input
+id="fileUrl"
+placeholder="https://example.com/file.zip"
+size="50">
+
+<button onclick="uploadUrl()">
+    Upload URL
+</button>
+
+<hr>
+
+<h3>Local File Upload</h3>
+
+<input type="file" id="localFile">
+
+<button onclick="uploadLocal()">
+    Upload File
+</button>
+
+<hr>
+
+<pre id="result"></pre>
+
+<script src="app.js"></script>
+
+</body>
+</html>
