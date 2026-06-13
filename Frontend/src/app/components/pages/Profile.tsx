@@ -1,40 +1,18 @@
 import { useState } from "react";
 import { motion, AnimatePresence } from "motion/react";
-import { Check, ExternalLink, Settings, Shield, Camera } from "lucide-react";
-
-const tabs = ["Profile Information", "Public Profile", "Payment Details", "Social Links", "Security"];
+import { Check, Camera } from "lucide-react";
 
 export function Profile() {
-  const [activeTab, setActiveTab] = useState("Profile Information");
-
   return (
     <div className="p-6 min-h-full bg-gray-50">
       <motion.div className="mb-4" initial={{ opacity: 0, y: -16 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.4 }}>
         <h1 className="text-xl font-bold text-gray-900">Profile</h1>
-        <p className="text-sm text-gray-500 mt-0.5">Manage your account information, public profile, and preferences.</p>
-      </motion.div>
-
-      {/* Tabs */}
-      <motion.div
-        className="flex gap-0 border-b border-gray-200 mb-5"
-        initial={{ opacity: 0, y: 8 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.35, delay: 0.1 }}
-      >
-        {tabs.map((tab) => (
-          <button
-            key={tab}
-            onClick={() => setActiveTab(tab)}
-            className={`px-4 py-2.5 text-xs font-medium border-b-2 transition-colors whitespace-nowrap relative ${activeTab === tab ? "border-blue-600 text-blue-600" : "border-transparent text-gray-500 hover:text-gray-700"}`}
-          >
-            {tab}
-          </button>
-        ))}
+        <p className="text-sm text-gray-500 mt-0.5">Manage your account information and preferences.</p>
       </motion.div>
 
       <AnimatePresence mode="wait">
         <motion.div
-          key={activeTab}
+          key="profile-info"
           initial={{ opacity: 0, y: 10 }}
           animate={{ opacity: 1, y: 0 }}
           exit={{ opacity: 0, y: -10 }}
@@ -117,31 +95,6 @@ export function Profile() {
                 </div>
               </div>
             </motion.div>
-
-            <motion.div
-              className="bg-white rounded-xl border border-gray-200 shadow-sm p-5"
-              initial={{ opacity: 0, x: -20 }}
-              animate={{ opacity: 1, x: 0 }}
-              transition={{ duration: 0.4, delay: 0.18 }}
-            >
-              <h2 className="text-sm font-semibold text-gray-900 mb-4">Update Password</h2>
-              <div className="grid grid-cols-3 gap-4">
-                {["Current Password", "New Password", "Confirm New Password"].map((label) => (
-                  <div key={label}>
-                    <label className="block text-xs font-medium text-gray-700 mb-1.5">{label}</label>
-                    <input type="password" placeholder={`Enter ${label.toLowerCase()}`} className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent" />
-                  </div>
-                ))}
-              </div>
-              <div className="flex justify-end mt-4">
-                <motion.button
-                  className="bg-blue-600 text-white rounded-lg px-4 py-2 text-sm font-semibold hover:bg-blue-700 transition-colors"
-                  whileHover={{ scale: 1.03 }} whileTap={{ scale: 0.97 }}
-                >
-                  Update Password
-                </motion.button>
-              </div>
-            </motion.div>
           </div>
 
           <div className="space-y-4">
@@ -206,34 +159,10 @@ export function Profile() {
             </motion.div>
 
             <motion.div
-              className="bg-white rounded-xl border border-gray-200 shadow-sm p-4"
-              initial={{ opacity: 0, x: 20 }}
-              animate={{ opacity: 1, x: 0 }}
-              transition={{ duration: 0.4, delay: 0.3 }}
-            >
-              <h3 className="text-sm font-semibold text-gray-900 mb-3">Quick Actions</h3>
-              <div className="space-y-1">
-                {[
-                  { icon: <ExternalLink size={12} />, label: "View Public Profile" },
-                  { icon: <Settings size={12} />, label: "Manage Subscription" },
-                  { icon: <Shield size={12} />, label: "Security Settings" },
-                ].map((action) => (
-                  <motion.button
-                    key={action.label}
-                    className="w-full flex items-center gap-2 text-xs text-gray-700 hover:text-blue-600 hover:bg-blue-50 rounded-lg px-2 py-1.5 transition-colors"
-                    whileHover={{ x: 2 }}
-                  >
-                    {action.icon}{action.label}
-                  </motion.button>
-                ))}
-              </div>
-            </motion.div>
-
-            <motion.div
               className="bg-white rounded-xl border border-red-200 shadow-sm p-4"
               initial={{ opacity: 0, x: 20 }}
               animate={{ opacity: 1, x: 0 }}
-              transition={{ duration: 0.4, delay: 0.4 }}
+              transition={{ duration: 0.4, delay: 0.3 }}
             >
               <h3 className="text-sm font-semibold text-red-600 mb-2">Danger Zone</h3>
               <p className="text-[11px] text-gray-600 font-semibold mb-1">Delete Account</p>
