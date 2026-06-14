@@ -1,15 +1,6 @@
 import { useState } from "react";
-import { Bold, Italic, List, Link, Upload, CheckCircle, AlertTriangle, ChevronRight } from "lucide-react";
+import { Bold, Italic, List, Link, Upload, CheckCircle, AlertTriangle, ChevronRight, Loader } from "lucide-react";
 import { motion, AnimatePresence } from "motion/react";
-
-const checklist = [
-  { label: "Mod Title", done: true },
-  { label: "Description", done: true },
-  { label: "Thumbnail", done: true },
-  { label: "At least 3 Screenshots", done: true },
-  { label: "Mod File", done: false },
-  { label: "Price Set", done: true },
-];
 
 const cardVariants = {
   hidden: { opacity: 0, y: 18 },
@@ -17,10 +8,109 @@ const cardVariants = {
 };
 
 export function UploadMod() {
-  const [price, setPrice] = useState("149.00");
+  // Form state
+  const [formData, setFormData] = useState({
+    title: "",
+    game: "",
+    category: "",
+    version: "",
+    shortDescription: "",
+    fullDescription: "",
+    price: "0",
+  });
+
+  const [price, setPrice] = useState("0");
   const [isFree, setIsFree] = useState(false);
   const [isDragging, setIsDragging] = useState(false);
   const [uploadedFile, setUploadedFile] = useState<string | null>(null);
+  const [thumbnailFile, setThumbnailFile] = useState<File | null>(null);
+  const [screenshots, setScreenshots] = useState<File[]>([]);
+  const [modFile, setModFile] = useState<File | null>(null);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [success, setSuccess] = useState(false);
+
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
+    const { name, value } = e.target;
+    setFormData(prev => ({ ...prev, [name]: value }));
+  };
+
+  const handleSubmit = async () => {
+    // Validation
+    if (!formData.title || !formData.game || !formData.category || !formData.version || 
+        !formData.fullDescription || !thumbnailFile || screenshots.length < 3 || !modFile) {
+      setError("Please fill in all required fields and upload necessary files.");
+      return;
+    }
+
+    setIsSubmitting(true);
+    setError(null);
+    setSuccess(false);
+
+    try {
+      // Create FormData for multipart upload
+      const uploadFormData = new FormData();
+      uploadFormData.append("title", formData.title);
+      uploadFormData.append("game", formData.game);
+      uploadFormData.append("category", formData.category);
+      uploadFormData.append("version", formData.version);
+      uploadFormData.append("shortDescription", formData.shortDescription);
+      uploadFormData.append("fullDescription", formData.fullDescription);
+      uploadFormData.append("price", isFree ? "0" : price);
+      uploadFormData.append("isFree", isFree.toString());
+      uploadFormData.append("thumbnail", thumbnailFile);
+      uploadFormData.append("modFile", modFile);
+      
+      // Append screenshots
+      screenshots.forEach((screenshot) => {
+        uploadFormData.append("screenshots", screenshot);
+      });
+
+      // Get auth token from localStorage
+      const authToken = localStorage.getItem("authToken");
+      if (!authToken) {
+        setError("You must be logged in to upload a mod");
+        return;
+      }
+
+      const API_BASE = import.meta.env.VITE_API_URL || "http://localhost:5001/api";
+      const response = await fetch(`${API_BASE}/mods/upload`, {
+        method: "POST",
+        body: uploadFormData,
+        headers: {
+          Authorization: `Bearer ${authToken}`,
+        },
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        setError(data.message || "Failed to upload mod");
+        return;
+      }
+
+      setSuccess(true);
+      // Reset form
+      setFormData({
+        title: "",
+        game: "",
+        category: "",
+        version: "",
+        shortDescription: "",
+        fullDescription: "",
+        price: "0",
+      });
+      setPrice("0");
+      setIsFree(false);
+      setThumbnailFile(null);
+      setScreenshots([]);
+      setModFile(null);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "An error occurred while uploading");
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
 
   const platformFee = isFree ? 0 : Math.round(parseFloat(price || "0") * 0.05 * 100) / 100;
   const youEarn = isFree ? 0 : Math.round((parseFloat(price || "0") - platformFee) * 100) / 100;
@@ -63,7 +153,10 @@ export function UploadMod() {
                   Mod Title <span className="text-red-500">*</span>
                 </label>
                 <input
-                  defaultValue="Neon Horizon Overhaul"
+                  type="text"
+                  name="title"
+                  value={formData.title}
+                  onChange={handleInputChange}
                   className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-shadow"
                   placeholder="Choose a title that describes your mod"
                 />
@@ -72,10 +165,16 @@ export function UploadMod() {
                 <label className="block text-xs font-medium text-gray-700 mb-1.5">
                   Game <span className="text-red-500">*</span>
                 </label>
-                <select className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm text-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white transition-shadow">
-                  <option>Cyberpunk 2077</option>
-                  <option>GTA V</option>
-                  <option>Skyrim SE</option>
+                <select 
+                  name="game"
+                  value={formData.game}
+                  onChange={handleInputChange}
+                  className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm text-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white transition-shadow"
+                >
+                  <option value="">Select a game</option>
+                  <option value="cyberpunk2077">Cyberpunk 2077</option>
+                  <option value="gtav">GTA V</option>
+                  <option value="skyrimse">Skyrim SE</option>
                 </select>
               </div>
             </div>
@@ -84,10 +183,16 @@ export function UploadMod() {
                 <label className="block text-xs font-medium text-gray-700 mb-1.5">
                   Category <span className="text-red-500">*</span>
                 </label>
-                <select className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm text-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white transition-shadow">
-                  <option>Environment Mods</option>
-                  <option>Character Mods</option>
-                  <option>Gameplay Mods</option>
+                <select 
+                  name="category"
+                  value={formData.category}
+                  onChange={handleInputChange}
+                  className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm text-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white transition-shadow"
+                >
+                  <option value="">Select a category</option>
+                  <option value="environment">Environment Mods</option>
+                  <option value="character">Character Mods</option>
+                  <option value="gameplay">Gameplay Mods</option>
                 </select>
               </div>
               <div>
@@ -95,7 +200,10 @@ export function UploadMod() {
                   Version <span className="text-red-500">*</span>
                 </label>
                 <input
-                  defaultValue="v2.4.1"
+                  type="text"
+                  name="version"
+                  value={formData.version}
+                  onChange={handleInputChange}
                   className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-shadow"
                   placeholder="e.g., 1.0.0"
                 />
@@ -108,10 +216,12 @@ export function UploadMod() {
               <textarea
                 className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none transition-shadow"
                 rows={2}
-                defaultValue="Complete lighting and texture rework for the central district, adding realistic reflections, improved shadows, and neon effects."
+                name="shortDescription"
+                value={formData.shortDescription}
+                onChange={handleInputChange}
                 placeholder="Briefly describe what your mod does (Max 200 characters)"
               />
-              <div className="text-right text-[10px] text-gray-400 mt-0.5">128/200</div>
+              <div className="text-right text-[10px] text-gray-400 mt-0.5">{formData.shortDescription.length}/200</div>
             </div>
             <div>
               <label className="block text-xs font-medium text-gray-700 mb-1.5">
@@ -120,7 +230,7 @@ export function UploadMod() {
               <div className="border border-gray-300 rounded-lg overflow-hidden focus-within:ring-2 focus-within:ring-blue-500 transition-shadow">
                 <div className="flex items-center gap-1 border-b border-gray-200 px-3 py-2 bg-gray-50">
                   {[Bold, Italic, List, Link].map((Icon, i) => (
-                    <button key={i} className="p-1 rounded hover:bg-gray-200 text-gray-600 transition-colors">
+                    <button key={i} className="p-1 rounded hover:bg-gray-200 text-gray-600 transition-colors" type="button">
                       <Icon size={12} />
                     </button>
                   ))}
@@ -128,12 +238,15 @@ export function UploadMod() {
                 <textarea
                   className="w-full px-3 py-2 text-sm text-gray-900 focus:outline-none resize-none"
                   rows={5}
-                  defaultValue={`Neon Horizon Overhaul is a complete visual enhancement mod for Cyberpunk 2077 that transforms the central district into a more immersive and realistic experience.\n\nFeatures:\n• Complete lighting rework\n• High-resolution textures\n• Realistic neon reflections\n• Optimized performance`}
+                  name="fullDescription"
+                  value={formData.fullDescription}
+                  onChange={handleInputChange}
+                  placeholder="Provide a detailed description of your mod"
                 />
               </div>
               <div className="flex justify-between mt-0.5">
                 <span className="text-[10px] text-gray-400">Provide a detailed description of your mod</span>
-                <span className="text-[10px] text-gray-400">326/2000</span>
+                <span className="text-[10px] text-gray-400">{formData.fullDescription.length}/2000</span>
               </div>
             </div>
           </motion.div>
@@ -156,16 +269,30 @@ export function UploadMod() {
                   className="border-2 border-dashed border-gray-300 rounded-lg overflow-hidden cursor-pointer hover:border-blue-400 transition-colors h-28 relative"
                   whileHover={{ scale: 1.01 }}
                   whileTap={{ scale: 0.99 }}
+                  onClick={() => document.getElementById('thumbnail-input')?.click()}
                 >
-                  <div className="absolute inset-0 bg-purple-900 opacity-80" />
-                  <div className="absolute inset-0 flex flex-col items-center justify-center gap-1">
-                    <motion.div whileHover={{ scale: 1.15 }} transition={{ type: "spring", stiffness: 300 }}>
-                      <Upload size={16} className="text-white" />
-                    </motion.div>
-                    <span className="text-[11px] text-white font-medium">Change Image</span>
-                    <span className="text-[10px] text-white/60">PNG, JPG up to 5MB</span>
-                  </div>
+                  {thumbnailFile ? (
+                    <div className="absolute inset-0 bg-blue-500 opacity-10 flex flex-col items-center justify-center">
+                      <CheckCircle size={20} className="text-blue-600 mb-1" />
+                      <span className="text-[11px] text-blue-600 font-medium text-center px-2">{thumbnailFile.name}</span>
+                    </div>
+                  ) : (
+                    <div className="absolute inset-0 bg-gray-50 flex flex-col items-center justify-center gap-1 hover:bg-blue-50 transition-colors">
+                      <motion.div whileHover={{ scale: 1.15 }} transition={{ type: "spring", stiffness: 300 }}>
+                        <Upload size={16} className="text-gray-400" />
+                      </motion.div>
+                      <span className="text-[11px] text-gray-600 font-medium">Upload Thumbnail</span>
+                      <span className="text-[10px] text-gray-400">PNG, JPG up to 5MB</span>
+                    </div>
+                  )}
                 </motion.div>
+                <input
+                  id="thumbnail-input"
+                  type="file"
+                  accept="image/*"
+                  onChange={(e) => e.target.files?.[0] && setThumbnailFile(e.target.files[0])}
+                  className="hidden"
+                />
                 <div className="text-[10px] text-gray-400 mt-1">This image will represent your mod</div>
               </div>
               <div>
@@ -173,24 +300,48 @@ export function UploadMod() {
                   Screenshots <span className="text-red-500">*</span>
                 </label>
                 <div className="grid grid-cols-4 gap-1">
-                  {["bg-purple-900", "bg-blue-900", "bg-gray-700"].map((bg, i) => (
+                  {screenshots.map((file, i) => (
                     <motion.div
                       key={i}
-                      className={`h-14 rounded-lg ${bg} cursor-pointer`}
+                      className="h-14 rounded-lg bg-blue-100 cursor-pointer relative group"
                       whileHover={{ scale: 1.05 }}
                       transition={{ type: "spring", stiffness: 300 }}
-                    />
+                      onClick={() => {
+                        const newScreenshots = screenshots.filter((_, idx) => idx !== i);
+                        setScreenshots(newScreenshots);
+                      }}
+                    >
+                      <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 bg-black/50 rounded-lg transition-opacity">
+                        <span className="text-white text-xs">Remove</span>
+                      </div>
+                      <span className="absolute top-1 right-1 text-[9px] bg-blue-600 text-white rounded px-1">{i + 1}</span>
+                    </motion.div>
                   ))}
-                  <motion.div
-                    className="h-14 border-2 border-dashed border-gray-300 rounded-lg flex flex-col items-center justify-center cursor-pointer hover:border-blue-400 hover:bg-blue-50/30 transition-colors"
-                    whileHover={{ scale: 1.05 }}
-                    whileTap={{ scale: 0.97 }}
-                  >
-                    <span className="text-lg text-gray-400 leading-none">+</span>
-                    <span className="text-[9px] text-gray-400">Add More</span>
-                  </motion.div>
+                  {screenshots.length < 10 && (
+                    <motion.div
+                      className="h-14 border-2 border-dashed border-gray-300 rounded-lg flex flex-col items-center justify-center cursor-pointer hover:border-blue-400 hover:bg-blue-50/30 transition-colors"
+                      whileHover={{ scale: 1.05 }}
+                      whileTap={{ scale: 0.97 }}
+                      onClick={() => document.getElementById('screenshot-input')?.click()}
+                    >
+                      <span className="text-lg text-gray-400 leading-none">+</span>
+                      <span className="text-[9px] text-gray-400">Add More</span>
+                    </motion.div>
+                  )}
                 </div>
-                <div className="text-[10px] text-gray-400 mt-1">Upload at least 3 screenshots (Max 10). 3/10</div>
+                <input
+                  id="screenshot-input"
+                  type="file"
+                  accept="image/*"
+                  multiple
+                  onChange={(e) => {
+                    if (e.target.files) {
+                      setScreenshots([...screenshots, ...Array.from(e.target.files).slice(0, 10 - screenshots.length)]);
+                    }
+                  }}
+                  className="hidden"
+                />
+                <div className="text-[10px] text-gray-400 mt-1">Upload at least 3 screenshots (Max 10). {screenshots.length}/10</div>
               </div>
             </div>
           </motion.div>
@@ -217,14 +368,18 @@ export function UploadMod() {
                 e.preventDefault();
                 setIsDragging(false);
                 const file = e.dataTransfer.files[0];
-                if (file) setUploadedFile(file.name);
+                if (file && (file.type === 'application/zip' || file.type === 'application/x-rar-compressed')) {
+                  setModFile(file);
+                } else {
+                  setError('Please upload a ZIP or RAR file');
+                }
               }}
-              onClick={() => setUploadedFile("neon_horizon_v2.4.1.zip")}
+              onClick={() => document.getElementById('mod-file-input')?.click()}
               animate={{ scale: isDragging ? 1.01 : 1 }}
               transition={{ type: "spring", stiffness: 300 }}
             >
               <AnimatePresence mode="wait">
-                {uploadedFile ? (
+                {modFile ? (
                   <motion.div
                     key="uploaded"
                     className="flex flex-col items-center gap-1"
@@ -233,7 +388,7 @@ export function UploadMod() {
                     exit={{ opacity: 0, scale: 0.8 }}
                   >
                     <CheckCircle size={22} className="text-green-500 mb-1" />
-                    <span className="text-sm font-medium text-green-700">{uploadedFile}</span>
+                    <span className="text-sm font-medium text-green-700">{modFile.name}</span>
                     <span className="text-xs text-gray-400">File ready for upload</span>
                   </motion.div>
                 ) : (
@@ -254,6 +409,16 @@ export function UploadMod() {
                 )}
               </AnimatePresence>
             </motion.div>
+            <input
+              id="mod-file-input"
+              type="file"
+              accept=".zip,.rar"
+              onChange={(e) => {
+                const file = e.target.files?.[0];
+                if (file) setModFile(file);
+              }}
+              className="hidden"
+            />
             <div className="text-[10px] text-gray-400 mt-1">Make sure your mod file is properly compressed</div>
           </motion.div>
 
@@ -278,6 +443,8 @@ export function UploadMod() {
                   onChange={(e) => setPrice(e.target.value)}
                   disabled={isFree}
                   className="px-3 py-2 text-sm text-gray-900 focus:outline-none w-24 disabled:bg-gray-50 disabled:text-gray-400 transition-colors"
+                  min="0"
+                  step="0.01"
                 />
               </div>
               <label className="flex items-center gap-2 cursor-pointer select-none">
@@ -322,18 +489,18 @@ export function UploadMod() {
               </div>
               <div className="flex justify-between text-sm">
                 <span className="text-gray-600">Platform Fee (5%)</span>
-                <span className="text-red-500">-₹{platformFee.toFixed(2)}</span>
+                <span className="text-red-500">-₹{(isFree ? 0 : Math.round(parseFloat(price || "0") * 0.05 * 100) / 100).toFixed(2)}</span>
               </div>
               <div className="border-t border-gray-100 pt-2 flex justify-between text-sm font-semibold">
                 <span className="text-gray-900">You Earn (95%)</span>
                 <motion.span
-                  key={youEarn}
+                  key={isFree ? 0 : Math.round((parseFloat(price || "0") - Math.round(parseFloat(price || "0") * 0.05 * 100) / 100) * 100) / 100}
                   className="text-green-600"
                   initial={{ scale: 1.2, color: "#16a34a" }}
                   animate={{ scale: 1, color: "#16a34a" }}
                   transition={{ type: "spring", stiffness: 400 }}
                 >
-                  ₹{youEarn.toFixed(2)}
+                  ₹{(isFree ? 0 : Math.round((parseFloat(price || "0") - Math.round(parseFloat(price || "0") * 0.05 * 100) / 100) * 100) / 100).toFixed(2)}
                 </motion.span>
               </div>
             </div>
@@ -342,44 +509,21 @@ export function UploadMod() {
             </div>
           </motion.div>
 
-          {/* Storage Impact */}
+          {/* Submission Checklist */}
           <motion.div
             className="bg-white rounded-xl border border-gray-200 shadow-sm p-4"
             custom={1} variants={cardVariants} initial="hidden" animate="visible"
           >
-            <h3 className="text-sm font-semibold text-gray-900 mb-3">Storage Impact</h3>
-            <div className="space-y-2 text-xs mb-3">
-              {[
-                ["File Size (approx.)", "512 MB", false],
-                ["Your Current Usage", "5.2 GB", false],
-                ["After Upload", "5.7 GB / 5 GB", true],
-              ].map(([k, v, red]) => (
-                <div key={String(k)} className="flex justify-between">
-                  <span className="text-gray-500">{String(k)}</span>
-                  <span className={`font-medium ${red ? "text-red-500" : "text-gray-900"}`}>{String(v)}</span>
-                </div>
-              ))}
-            </div>
-            <div className="bg-red-50 border border-red-200 rounded-lg p-2.5 flex items-start gap-2 mb-3">
-              <AlertTriangle size={11} className="text-red-500 mt-0.5 shrink-0" />
-              <p className="text-[10px] text-red-600">Storage limit exceeded! Please upgrade your plan to upload this mod.</p>
-            </div>
-            <motion.button
-              className="w-full bg-blue-600 text-white rounded-lg py-1.5 text-xs font-semibold hover:bg-blue-700 transition-colors"
-              whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.97 }}
-            >
-              Upgrade Plan
-            </motion.button>
-          </motion.div>
-
-          {/* Submission Checklist */}
-          <motion.div
-            className="bg-white rounded-xl border border-gray-200 shadow-sm p-4"
-            custom={2} variants={cardVariants} initial="hidden" animate="visible"
-          >
             <h3 className="text-sm font-semibold text-gray-900 mb-3">Submission Checklist</h3>
             <div className="space-y-2">
-              {checklist.map((item, i) => (
+              {[
+                { label: "Mod Title", done: !!formData.title },
+                { label: "Description", done: !!formData.fullDescription },
+                { label: "Thumbnail", done: !!thumbnailFile },
+                { label: "At least 3 Screenshots", done: screenshots.length >= 3 },
+                { label: "Mod File", done: !!modFile },
+                { label: "Price Set", done: isFree || parseFloat(price || "0") > 0 },
+              ].map((item, i) => (
                 <motion.div
                   key={item.label}
                   className="flex items-center justify-between"
@@ -414,15 +558,51 @@ export function UploadMod() {
 
           {/* Submit button */}
           <motion.div
-            custom={3} variants={cardVariants} initial="hidden" animate="visible"
+            custom={2} variants={cardVariants} initial="hidden" animate="visible"
           >
+            {error && (
+              <motion.div
+                className="bg-red-50 border border-red-200 rounded-lg p-3 mb-3 flex items-start gap-2"
+                initial={{ opacity: 0, y: -10 }}
+                animate={{ opacity: 1, y: 0 }}
+              >
+                <AlertTriangle size={14} className="text-red-500 mt-0.5 shrink-0" />
+                <p className="text-xs text-red-600">{error}</p>
+              </motion.div>
+            )}
+            {success && (
+              <motion.div
+                className="bg-green-50 border border-green-200 rounded-lg p-3 mb-3 flex items-start gap-2"
+                initial={{ opacity: 0, y: -10 }}
+                animate={{ opacity: 1, y: 0 }}
+              >
+                <CheckCircle size={14} className="text-green-500 mt-0.5 shrink-0" />
+                <p className="text-xs text-green-600">Mod uploaded successfully! It will be reviewed soon.</p>
+              </motion.div>
+            )}
             <motion.button
-              className="w-full bg-blue-600 text-white rounded-xl py-3 text-sm font-semibold hover:bg-blue-700 transition-colors flex items-center justify-center gap-2 shadow-md"
+              onClick={handleSubmit}
+              disabled={isSubmitting || !formData.title || !modFile || screenshots.length < 3 || !thumbnailFile}
+              className="w-full bg-blue-600 text-white rounded-xl py-3 text-sm font-semibold hover:bg-blue-700 transition-colors flex items-center justify-center gap-2 shadow-md disabled:opacity-50 disabled:cursor-not-allowed"
               whileHover={{ scale: 1.02, boxShadow: "0 8px 24px rgba(59,130,246,0.4)" }}
               whileTap={{ scale: 0.97 }}
             >
-              <Upload size={14} />
-              Review & Submit
+              {isSubmitting ? (
+                <>
+                  <motion.div
+                    animate={{ rotate: 360 }}
+                    transition={{ repeat: Infinity, duration: 1 }}
+                  >
+                    <Loader size={14} />
+                  </motion.div>
+                  Uploading...
+                </>
+              ) : (
+                <>
+                  <Upload size={14} />
+                  Review & Submit
+                </>
+              )}
             </motion.button>
             <p className="text-[10px] text-gray-400 text-center mt-2">
               Your mod will be reviewed before it goes live on the marketplace.
