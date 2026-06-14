@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useRef, useCallback } from "react";
 import { Bold, Italic, List, Link, Upload, CheckCircle, AlertTriangle, ChevronRight, Loader } from "lucide-react";
 import { motion, AnimatePresence } from "motion/react";
 
@@ -11,8 +11,7 @@ export function UploadMod() {
   // Form state
   const [formData, setFormData] = useState({
     title: "",
-    game: "",
-    category: "",
+    game: "ets2",
     version: "",
     shortDescription: "",
     fullDescription: "",
@@ -30,14 +29,61 @@ export function UploadMod() {
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState(false);
 
+  const descriptionRef = useRef<HTMLTextAreaElement>(null);
+
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
     const { name, value } = e.target;
     setFormData(prev => ({ ...prev, [name]: value }));
   };
 
+  const formatText = useCallback((format: 'bold' | 'italic' | 'list' | 'link') => {
+    const textarea = descriptionRef.current;
+    if (!textarea) return;
+    const { selectionStart, selectionEnd } = textarea;
+    const text = formData.fullDescription;
+    let formatted = '';
+
+    switch (format) {
+      case 'bold': {
+        const selected = text.substring(selectionStart, selectionEnd) || 'bold text';
+        formatted = text.substring(0, selectionStart) + `**${selected}**` + text.substring(selectionEnd);
+        break;
+      }
+      case 'italic': {
+        const selected = text.substring(selectionStart, selectionEnd) || 'italic text';
+        formatted = text.substring(0, selectionStart) + `*${selected}*` + text.substring(selectionEnd);
+        break;
+      }
+      case 'list': {
+        const selected = text.substring(selectionStart, selectionEnd);
+        if (selected) {
+          const lines = selected.split('\n').map(l => `- ${l}`).join('\n');
+          formatted = text.substring(0, selectionStart) + lines + text.substring(selectionEnd);
+        } else {
+          formatted = text.substring(0, selectionStart) + '- ' + text.substring(selectionEnd);
+        }
+        break;
+      }
+      case 'link': {
+        const selected = text.substring(selectionStart, selectionEnd) || 'link text';
+        const url = prompt('Enter URL:');
+        if (!url) return;
+        formatted = text.substring(0, selectionStart) + `[${selected}](${url})` + text.substring(selectionEnd);
+        break;
+      }
+    }
+
+    setFormData(prev => ({ ...prev, fullDescription: formatted }));
+    setTimeout(() => {
+      textarea.focus();
+      const cursorPos = selectionStart + (formatted.length - text.length);
+      textarea.setSelectionRange(cursorPos, cursorPos);
+    }, 0);
+  }, [formData.fullDescription]);
+
   const handleSubmit = async () => {
     // Validation
-    if (!formData.title || !formData.game || !formData.category || !formData.version || 
+    if (!formData.title || !formData.game || !formData.version || 
         !formData.fullDescription || !thumbnailFile || screenshots.length < 3 || !modFile) {
       setError("Please fill in all required fields and upload necessary files.");
       return;
@@ -93,8 +139,7 @@ export function UploadMod() {
       // Reset form
       setFormData({
         title: "",
-        game: "",
-        category: "",
+        game: "ets2",
         version: "",
         shortDescription: "",
         fullDescription: "",
@@ -165,36 +210,13 @@ export function UploadMod() {
                 <label className="block text-xs font-medium text-gray-700 mb-1.5">
                   Game <span className="text-red-500">*</span>
                 </label>
-                <select 
-                  name="game"
-                  value={formData.game}
-                  onChange={handleInputChange}
-                  className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm text-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white transition-shadow"
-                >
-                  <option value="">Select a game</option>
-                  <option value="cyberpunk2077">Cyberpunk 2077</option>
-                  <option value="gtav">GTA V</option>
-                  <option value="skyrimse">Skyrim SE</option>
-                </select>
+                <div className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm text-gray-700 bg-gray-100">
+                  Euro Truck Simulator 2
+                </div>
+                <input type="hidden" name="game" value="ets2" />
               </div>
             </div>
             <div className="grid grid-cols-2 gap-4 mb-4">
-              <div>
-                <label className="block text-xs font-medium text-gray-700 mb-1.5">
-                  Category <span className="text-red-500">*</span>
-                </label>
-                <select 
-                  name="category"
-                  value={formData.category}
-                  onChange={handleInputChange}
-                  className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm text-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white transition-shadow"
-                >
-                  <option value="">Select a category</option>
-                  <option value="environment">Environment Mods</option>
-                  <option value="character">Character Mods</option>
-                  <option value="gameplay">Gameplay Mods</option>
-                </select>
-              </div>
               <div>
                 <label className="block text-xs font-medium text-gray-700 mb-1.5">
                   Version <span className="text-red-500">*</span>
@@ -229,13 +251,24 @@ export function UploadMod() {
               </label>
               <div className="border border-gray-300 rounded-lg overflow-hidden focus-within:ring-2 focus-within:ring-blue-500 transition-shadow">
                 <div className="flex items-center gap-1 border-b border-gray-200 px-3 py-2 bg-gray-50">
-                  {[Bold, Italic, List, Link].map((Icon, i) => (
-                    <button key={i} className="p-1 rounded hover:bg-gray-200 text-gray-600 transition-colors" type="button">
+                  {([
+                    { Icon: Bold, format: 'bold' as const },
+                    { Icon: Italic, format: 'italic' as const },
+                    { Icon: List, format: 'list' as const },
+                    { Icon: Link, format: 'link' as const },
+                  ]).map(({ Icon, format }) => (
+                    <button
+                      key={format}
+                      onClick={() => formatText(format)}
+                      className="p-1 rounded hover:bg-gray-200 text-gray-600 transition-colors"
+                      type="button"
+                    >
                       <Icon size={12} />
                     </button>
                   ))}
                 </div>
                 <textarea
+                  ref={descriptionRef}
                   className="w-full px-3 py-2 text-sm text-gray-900 focus:outline-none resize-none"
                   rows={5}
                   name="fullDescription"
@@ -272,9 +305,15 @@ export function UploadMod() {
                   onClick={() => document.getElementById('thumbnail-input')?.click()}
                 >
                   {thumbnailFile ? (
-                    <div className="absolute inset-0 bg-blue-500 opacity-10 flex flex-col items-center justify-center">
-                      <CheckCircle size={20} className="text-blue-600 mb-1" />
-                      <span className="text-[11px] text-blue-600 font-medium text-center px-2">{thumbnailFile.name}</span>
+                    <div className="absolute inset-0">
+                      <img
+                        src={URL.createObjectURL(thumbnailFile)}
+                        alt="Thumbnail preview"
+                        className="w-full h-full object-cover rounded-lg"
+                      />
+                      <div className="absolute inset-0 bg-black/30 flex items-center justify-center opacity-0 hover:opacity-100 transition-opacity rounded-lg">
+                        <span className="text-white text-xs font-medium">{thumbnailFile.name}</span>
+                      </div>
                     </div>
                   ) : (
                     <div className="absolute inset-0 bg-gray-50 flex flex-col items-center justify-center gap-1 hover:bg-blue-50 transition-colors">
@@ -303,7 +342,7 @@ export function UploadMod() {
                   {screenshots.map((file, i) => (
                     <motion.div
                       key={i}
-                      className="h-14 rounded-lg bg-blue-100 cursor-pointer relative group"
+                      className="h-14 rounded-lg relative group overflow-hidden"
                       whileHover={{ scale: 1.05 }}
                       transition={{ type: "spring", stiffness: 300 }}
                       onClick={() => {
@@ -311,6 +350,11 @@ export function UploadMod() {
                         setScreenshots(newScreenshots);
                       }}
                     >
+                      <img
+                        src={URL.createObjectURL(file)}
+                        alt={`Screenshot ${i + 1}`}
+                        className="w-full h-full object-cover rounded-lg"
+                      />
                       <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 bg-black/50 rounded-lg transition-opacity">
                         <span className="text-white text-xs">Remove</span>
                       </div>
