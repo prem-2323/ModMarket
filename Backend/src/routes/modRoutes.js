@@ -1,17 +1,23 @@
 const express = require("express");
 const multer = require("multer");
+const path = require("path");
 const { authenticate } = require("../middleware/authMiddleware");
 const modController = require("../controllers/modController");
 
 const router = express.Router();
 
-// Configure multer for file uploads
-const storage = multer.memoryStorage();
+// Configure multer for file uploads (disk storage for ShareMods upload)
+const storage = multer.diskStorage({
+  destination: path.join(__dirname, "../../uploads"),
+  filename: (req, file, cb) => {
+    const uniqueSuffix = Date.now() + "-" + Math.round(Math.random() * 1e9);
+    cb(null, uniqueSuffix + "-" + file.originalname);
+  },
+});
 const upload = multer({
   storage,
   limits: { fileSize: 2 * 1024 * 1024 * 1024 }, // 2GB limit
   fileFilter: (req, file, cb) => {
-    // Validate file types
     const allowedMimetypes = [
       "image/jpeg",
       "image/png",

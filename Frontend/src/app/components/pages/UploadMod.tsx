@@ -113,7 +113,7 @@ export function UploadMod() {
       });
 
       // Get auth token from localStorage
-      const authToken = localStorage.getItem("authToken");
+      const authToken = localStorage.getItem("auth_token");
       if (!authToken) {
         setError("You must be logged in to upload a mod");
         return;

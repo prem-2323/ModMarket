@@ -1,13 +1,15 @@
 const { db } = require("../services/firebaseService");
+const sharemodsService = require("../services/sharemodsService");
+
+const SHAREMODS_DOWNLOAD_BASE = process.env.SHAREMODS_DOWNLOAD_BASE || "https://sharemods.com";
 
 // Upload a new mod
 exports.uploadMod = async (req, res) => {
   try {
-    const { title, game, category, version, shortDescription, fullDescription, price, isFree } = req.body;
+    const { title, game, version, shortDescription, fullDescription, price, isFree } = req.body;
     const userId = req.user?.uid;
 
-    // Validation
-    if (!title || !game || !category || !version || !fullDescription || !userId) {
+    if (!title || !game || !version || !fullDescription || !userId) {
       return res.status(400).json({ message: "Missing required fields" });
     }
 
@@ -16,52 +18,73 @@ exports.uploadMod = async (req, res) => {
     }
 
     let screenshots = req.files.screenshots || [];
-    if (!Array.isArray(screenshots) && screenshots) {
-      screenshots = [screenshots];
-    }
+    if (!Array.isArray(screenshots) && screenshots) screenshots = [screenshots];
 
     if (screenshots.length < 3) {
       return res.status(400).json({ message: "At least 3 screenshots are required" });
     }
 
-    // Create new mod document
+    // Look up username from Firestore
+    const userDoc = await db.collection("users").where("uid", "==", userId).limit(1).get();
+    if (userDoc.empty) return res.status(400).json({ message: "User not found" });
+    const username = userDoc.docs[0].data().username;
+
+    // ── 1. Create user folder on ShareMods ──
+    let folderId = null;
+    try {
+      const folderRes = await sharemodsService.createFolder(username);
+      folderId = folderRes?.result?.fld_id;
+    } catch {
+      // Folder already exists
+    }
+
+    // ── 2. Upload all files to ShareMods ──
+    const uploadToSharemods = async (file, displayName) => {
+      const result = await sharemodsService.uploadLocalFile(file.path, displayName, folderId);
+      const item = Array.isArray(result) ? result[0] : result;
+      const code = item?.file_code || "";
+      return code
+        ? `${SHAREMODS_DOWNLOAD_BASE}/${code}/${encodeURIComponent(displayName)}`
+        : item?.result || item?.download_url || "";
+    };
+
+    const thumbnailUrl = await uploadToSharemods(
+      req.files.thumbnail[0],
+      `${username}/${title}/thumbnail.${req.files.thumbnail[0].originalname.split(".").pop()}`
+    );
+
+    const screenshotUrls = [];
+    for (let i = 0; i < screenshots.length; i++) {
+      const ext = screenshots[i].originalname.split(".").pop();
+      const url = await uploadToSharemods(screenshots[i], `${username}/${title}/screenshot${i + 1}.${ext}`);
+      screenshotUrls.push(url);
+    }
+
+    const modFile = req.files.modFile[0];
+    const sharemodsUrl = await uploadToSharemods(modFile, `${username}/${title}/${modFile.originalname}`);
+
+    // ── 3. Save metadata in Firestore ──
     const newMod = {
       title,
       game,
-      category,
       version,
       shortDescription,
       fullDescription,
       price: isFree === "true" ? 0 : parseFloat(price),
       isFree: isFree === "true",
-      createdBy: userId,
+      uid: userId,
+      author: username,
       createdAt: new Date(),
       updatedAt: new Date(),
       status: "pending_review",
       downloads: 0,
       rating: 0,
       reviews: 0,
-      // File metadata
-      files: {
-        thumbnail: {
-          name: req.files.thumbnail[0].originalname,
-          size: req.files.thumbnail[0].size,
-          mimetype: req.files.thumbnail[0].mimetype,
-        },
-        modFile: {
-          name: req.files.modFile[0].originalname,
-          size: req.files.modFile[0].size,
-          mimetype: req.files.modFile[0].mimetype,
-        },
-        screenshots: screenshots.map((file) => ({
-          name: file.originalname,
-          size: file.size,
-          mimetype: file.mimetype,
-        })),
-      },
+      sharemodsUrl,
+      thumbnailUrl,
+      screenshots: screenshotUrls,
     };
 
-    // Add to Firestore
     const docRef = await db.collection("mods").add(newMod);
 
     res.status(201).json({
@@ -85,7 +108,6 @@ exports.getAllMods = async (req, res) => {
 
     const mods = [];
     snapshot.forEach((doc) => {
-      // Only return published mods
       if (doc.data().status === "published") {
         mods.push({ id: doc.id, ...doc.data() });
       }
@@ -126,7 +148,7 @@ exports.getUserMods = async (req, res) => {
 
     const snapshot = await db
       .collection("mods")
-      .where("createdBy", "==", userId)
+      .where("uid", "==", userId)
       .orderBy("createdAt", "desc")
       .get();
 
@@ -149,17 +171,15 @@ exports.updateMod = async (req, res) => {
     const userId = req.user?.uid;
     const updates = req.body;
 
-    // Check ownership
     const doc = await db.collection("mods").doc(modId).get();
     if (!doc.exists) {
       return res.status(404).json({ message: "Mod not found" });
     }
 
-    if (doc.data().createdBy !== userId) {
+    if (doc.data().uid !== userId) {
       return res.status(403).json({ message: "Unauthorized" });
     }
 
-    // Update the document
     await db.collection("mods").doc(modId).update({
       ...updates,
       updatedAt: new Date(),
@@ -178,17 +198,15 @@ exports.deleteMod = async (req, res) => {
     const { modId } = req.params;
     const userId = req.user?.uid;
 
-    // Check ownership
     const doc = await db.collection("mods").doc(modId).get();
     if (!doc.exists) {
       return res.status(404).json({ message: "Mod not found" });
     }
 
-    if (doc.data().createdBy !== userId) {
+    if (doc.data().uid !== userId) {
       return res.status(403).json({ message: "Unauthorized" });
     }
 
-    // Delete the document
     await db.collection("mods").doc(modId).delete();
 
     res.json({ message: "Mod deleted successfully" });
@@ -220,7 +238,6 @@ exports.searchMods = async (req, res) => {
       mods.push({ id: doc.id, ...doc.data() });
     });
 
-    // Client-side search for title/description if query provided
     if (query) {
       const lowerQuery = query.toLowerCase();
       mods = mods.filter(

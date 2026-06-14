@@ -21,12 +21,15 @@ if (serviceAccountPath) {
 admin.initializeApp({
   credential,
   databaseURL: process.env.FIREBASE_DATABASE_URL,
+  storageBucket: process.env.FIREBASE_STORAGE_BUCKET,
 });
 
 const auth = admin.auth();
 const db = admin.firestore();
+const bucket = admin.storage().bucket();
 
 module.exports = {
   auth,
   db,
+  bucket,
 };
